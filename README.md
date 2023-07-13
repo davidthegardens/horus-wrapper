@@ -5,6 +5,9 @@ Horus
 
 A framework to detect attacks and trace stolen assets across Ethereum.  Our paper can be found [here](https://orbilu.uni.lu/retrieve/77779/85581/FC_21_Horus_Torres.pdf).
 
+## What the fork?
+This fork is a wrapper for Christof Torres' amazing tool, Horus. The purpose of this fork is to easily pass in already pulled transactions, and retrieve Horus' output for this transaction.
+
 ## Quick Start
 
 A container with the dependencies set up can be found [here](https://hub.docker.com/r/christoftorres/horus/).
