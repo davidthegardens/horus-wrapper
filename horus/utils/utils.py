@@ -10,6 +10,7 @@ import time
 import shlex
 import eth_utils
 import subprocess
+import requests
 
 from sys import getsizeof
 from collections import Mapping, Container
@@ -94,6 +95,34 @@ def convert_hex_to_int(x):
         return new_list
     return x
 
+def request_debug_trace_transaction_reth(connection, connection_retries, rpc_host, rpc_port, request_timeout, request_retry_interval, transaction_hash, disable_stack=False, disable_memory=True, disable_storage=True):
+    data, tracer = None, None
+    with open(os.path.dirname(os.path.realpath(sys.argv[0]))+'/extractor/evm_tracing.js', 'r') as file:
+        tracer = file.read().replace('\n', '')
+    if tracer:
+        data = json.dumps({"id": 1, "method": "debug_traceTransaction", "params": [transaction_hash, {"tracer": tracer, "timeout": str(request_timeout)+"s"}]})
+    else:
+        data = json.dumps({"id": 1, "method": "debug_traceTransaction", "params": [transaction_hash, {"disableStack": disable_stack, "disableMemory": disable_memory, "disableStorage": disable_storage}]})
+    tries = 0
+    headers = {"Content-Type": "application/json"}
+    while tries < connection_retries:
+        try:
+            tries += 1
+            connection.request('POST', '/', data, headers)
+            response = connection.getresponse()
+            if response.status == 200 and response.reason == "OK":
+                return json.loads(response.read())
+            return {"error": {"status": response.status, "reason": response.reason, "data": response.read().decode()}}
+        except Exception as e:
+            connection.close()
+            print("Exception: "+str(e))
+            if tries < connection_retries:
+                print("Retrying retrival of transaction trace "+str(transaction_hash)+" in "+str(request_retry_interval)+" seconds.")
+                time.sleep(request_retry_interval)
+                connection = http.client.HTTPConnection(rpc_host, rpc_port)
+            else:
+                return {"error": e}
+
 def request_debug_trace_transaction(connection, connection_retries, rpc_host, rpc_port, request_timeout, request_retry_interval, transaction_hash, disable_stack=False, disable_memory=True, disable_storage=True):
     data, tracer = None, None
     with open(os.path.dirname(os.path.realpath(sys.argv[0]))+'/extractor/evm_tracing.js', 'r') as file:
@@ -121,6 +150,45 @@ def request_debug_trace_transaction(connection, connection_retries, rpc_host, rp
                 connection = http.client.HTTPConnection(rpc_host, rpc_port)
             else:
                 return {"error": e}
+
+
+def request_debug_trace_block_alchemy(url,connection_retries,request_timeout, request_retry_interval, block_number, disable_stack=False, disable_memory=True, disable_storage=True):
+    data, tracer = None, None
+    with open(os.path.dirname(os.path.realpath(sys.argv[0]))+'/extractor/evm_tracing.js', 'r') as file:
+        tracer = file.read().replace('\n', '')
+
+    tries = 0
+
+    payload = {
+    "id": 1,
+    "jsonrpc": "2.0",
+    "method": "debug_traceBlockByNumber",
+    "params": ["finalized"]
+    }
+
+    headers = {
+    "accept": "application/json",
+    "content-type": "application/json"}
+
+    while tries < connection_retries:
+        try:
+            tries += 1
+            response=requests.post(url, json=payload, headers=headers)
+            print(response)
+
+            if response.status == 200 and response.reason == "OK":
+                return json.loads(response.read())
+            return {"error": {"status": response.status, "reason": response.reason, "data": response.read().decode()}}
+        except Exception as e:
+            connection.close()
+            print("Exception: "+str(e))
+            if tries < connection_retries:
+                print("Retrying retrival of block trace "+str(block_number)+" in "+str(request_retry_interval)+" seconds.")
+                time.sleep(request_retry_interval)
+                connection = http.client.HTTPConnection(rpc_host, rpc_port)
+            else:
+                return {"error": e}
+
 
 def request_debug_trace_block(connection, connection_retries, rpc_host, rpc_port, request_timeout, request_retry_interval, block_number, disable_stack=False, disable_memory=True, disable_storage=True):
     data, tracer = None, None

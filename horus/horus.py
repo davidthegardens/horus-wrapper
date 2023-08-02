@@ -20,6 +20,7 @@ from extractor import Extractor
 from analyzer import Analyzer
 from tracer import Tracer
 
+
 def main():
     execution_begin = time.time()
     connection = None
@@ -118,7 +119,6 @@ def main():
             settings.RPC_PORT = args.port
         if args.traces_folder:
             settings.TRACES_FOLDER = args.traces_folder
-
         if args.extract and (args.transaction_hash or args.block_number or args.contract_address):
             tries = 0
             network = ""
@@ -175,7 +175,7 @@ def main():
                 print(e)
                 print("Error: Blockchain is not in sync with transaction: "+args.transaction_hash)
             extractor = Extractor()
-            extractor.extract_facts_from_transactions(connection, transactions, blocks, settings.FACTS_FOLDER, args.compress)
+            extractor.extract_facts_from_transactions_reth(connection, transactions, blocks, settings.FACTS_FOLDER, args.compress)
 
         if args.extract and args.block_number:
             if " " in args.block_number:
